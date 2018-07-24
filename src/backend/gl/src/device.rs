@@ -423,12 +423,12 @@ impl d::Device<B> for Device {
 
     fn create_command_pool(
         &self,
-        _family: QueueFamilyId,
-        flags: CommandPoolCreateFlags,
+        _: QueueFamilyId,
+        create_flags: CommandPoolCreateFlags,
     ) -> RawCommandPool {
         let fbo = create_fbo_internal(&self.share.context);
         let limits = self.share.limits.into();
-        let memory = if flags.contains(CommandPoolCreateFlags::RESET_INDIVIDUAL) {
+        let memory = if create_flags.contains(CommandPoolCreateFlags::RESET_INDIVIDUAL) {
             BufferMemory::Individual {
                 storage: FastHashMap::default(),
                 next_buffer_id: 0,
@@ -888,13 +888,13 @@ impl d::Device<B> for Device {
     }
 
     fn bind_buffer_memory(
-        &self, memory: &n::Memory, offset: u64, unbound: UnboundBuffer,
+        &self, memory: &n::Memory, offset: u64, unbound_buffer: UnboundBuffer,
     ) -> Result<n::Buffer, d::BindError> {
         let gl = &self.share.context;
-        let target = unbound.target;
+        let target = unbound_buffer.target;
 
         if offset == 0 {
-            memory.first_bound_buffer.set(unbound.name);
+            memory.first_bound_buffer.set(unbound_buffer.name);
         } else {
             assert_ne!(0, memory.first_bound_buffer.get());
         }
@@ -907,9 +907,9 @@ impl d::Device<B> for Device {
             let flags = memory.map_flags();
             //TODO: use *Named calls to avoid binding
             unsafe {
-                gl.BindBuffer(target, unbound.name);
+                gl.BindBuffer(target, unbound_buffer.name);
                 gl.BufferStorage(target,
-                    unbound.requirements.size as _,
+                    unbound_buffer.requirements.size as _,
                     ptr::null(),
                     flags,
                 );
@@ -927,9 +927,9 @@ impl d::Device<B> for Device {
                 gl::STATIC_DRAW
             };
             unsafe {
-                gl.BindBuffer(target, unbound.name);
+                gl.BindBuffer(target, unbound_buffer.name);
                 gl.BufferData(target,
-                    unbound.requirements.size as _,
+                    unbound_buffer.requirements.size as _,
                     ptr::null(),
                     flags,
                 );
@@ -938,14 +938,14 @@ impl d::Device<B> for Device {
         }
 
         if let Err(err) = self.share.check() {
-            panic!("Error {:?} initializing buffer {:?}, memory {:?}",
-                err, unbound, memory.properties);
+            panic!("Error {:?} initializing unbound_buffer {:?}, memory {:?}",
+                err, unbound_buffer, memory.properties);
         }
 
         Ok(n::Buffer {
-            raw: unbound.name,
+            raw: unbound_buffer.name,
             target,
-            size: unbound.requirements.size,
+            size: unbound_buffer.requirements.size,
         })
     }
 

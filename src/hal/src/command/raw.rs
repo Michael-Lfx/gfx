@@ -311,7 +311,7 @@ pub trait RawCommandBuffer<B: Backend>: Clone + Any + Send + Sync {
     ///
     /// - Command buffer must be in recording state.
     /// - Only queues with graphics capability support this function.
-    fn bind_graphics_pipeline(&mut self, &B::GraphicsPipeline);
+    fn bind_graphics_pipeline(&mut self, pipeline: &B::GraphicsPipeline);
 
     /// Takes an iterator of graphics `DescriptorSet`'s, and binds them to the command buffer.
     /// `first_set` is the index that the first descriptor is mapped to in the command buffer.
@@ -336,7 +336,7 @@ pub trait RawCommandBuffer<B: Backend>: Clone + Any + Send + Sync {
     ///
     /// - Command buffer must be in recording state.
     /// - Only queues with compute capability support this function.
-    fn bind_compute_pipeline(&mut self, &B::ComputePipeline);
+    fn bind_compute_pipeline(&mut self, pipeline: &B::ComputePipeline);
 
     /// Takes an iterator of compute `DescriptorSet`'s, and binds them to the command buffer,
     /// `first_set` is the index that the first descriptor is mapped to in the command buffer.

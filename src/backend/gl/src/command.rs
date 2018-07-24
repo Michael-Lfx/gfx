@@ -753,30 +753,30 @@ impl command::RawCommandBuffer<Backend> for RawCommandBuffer {
         }
     }
 
-    fn set_scissors<T>(&mut self, first_scissor: u32, scissors: T)
+    fn set_scissors<T>(&mut self, first_scissor: u32, rects: T)
     where
         T: IntoIterator,
         T::Item: Borrow<pso::Rect>,
     {
-        let mut scissors_ptr = BufferSlice { offset: 0, size: 0 };
+        let mut rects_ptr = BufferSlice { offset: 0, size: 0 };
         let mut len = 0;
-        for scissor in scissors {
-            let scissor = scissor.borrow();
-            let scissor = &[scissor.x as i32, scissor.y as i32, scissor.w as i32, scissor.h as i32];
-            scissors_ptr.append(self.add::<i32>(scissor));
+        for rect in rects {
+            let rect = rect.borrow();
+            let rect = &[rect.x as i32, rect.y as i32, rect.w as i32, rect.h as i32];
+            rects_ptr.append(self.add::<i32>(rect));
             len += 1;
         }
 
         match len {
             0 => {
-                error!("Number of scissors can not be zero.");
+                error!("Number of rects can not be zero.");
                 self.cache.error_state = true;
             }
             n if n + first_scissor as usize <= self.limits.max_viewports => {
-                self.push_cmd(Command::SetScissors(first_scissor, scissors_ptr));
+                self.push_cmd(Command::SetScissors(first_scissor, rects_ptr));
             }
             _ => {
-                error!("Number of scissors and first scissor index exceed the maximum number of viewports");
+                error!("Number of rects and first rect index exceed the maximum number of viewports");
                 self.cache.error_state = true;
             }
         }
