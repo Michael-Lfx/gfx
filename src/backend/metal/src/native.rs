@@ -385,8 +385,8 @@ unsafe impl Sync for BufferView {}
 
 #[derive(Debug)]
 pub struct ImageView {
-    pub(crate) raw: metal::Texture,
-    pub(crate) mtl_format: metal::MTLPixelFormat,
+    pub raw: metal::Texture,
+    pub mtl_format: metal::MTLPixelFormat,
 }
 
 unsafe impl Send for ImageView {}
