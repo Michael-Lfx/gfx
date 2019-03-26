@@ -519,7 +519,9 @@ impl State {
             height: rect.h as _,
         };
         self.scissors = Some(scissor);
+        debug!("scissor: {:?})", scissor);
         let clamped = State::clamp_scissor(scissor, self.target_extent);
+        debug!("clamped : {:?})", clamped);
         soft::RenderCommand::SetScissor(clamped)
     }
 
@@ -3100,11 +3102,13 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
             .next()
             .expect("No scissor provided, Metal supports exactly one");
         let rect = rect_borrowable.borrow();
+        debug!("rect: {:?})", rect);
         if rects.next().is_some() {
             panic!("More than one scissor set; Metal supports only one viewport");
         }
 
         let com = self.state.set_scissor(*rect);
+        debug!("rect: {:?})", rect);
         self.inner.borrow_mut().sink().pre_render().issue(com);
     }
 
@@ -3451,6 +3455,7 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
             pre.issue(self.state.set_viewport(vp, self.shared.disabilities));
         }
         if let Some(rect) = pipeline.baked_states.scissor {
+            debug!("pipeline.baked_states.scissor = {:?}", rect);
             pre.issue(self.state.set_scissor(rect));
         }
         if let Some(ref color) = pipeline.baked_states.blend_color {
