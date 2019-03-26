@@ -1,42 +1,40 @@
 use crate::{
-    conversions as conv, native, soft, window,
+    conversions as conv,
     internal::{BlitVertex, ClearKey, ClearVertex},
-    AsNative, Backend, BufferPtr, OnlineRecording, PrivateDisabilities,
+    native, soft, window, AsNative, Backend, BufferPtr, OnlineRecording, PrivateDisabilities,
     ResourceIndex, SamplerPtr, Shared, TexturePtr,
 };
 
 use hal::{
     self,
-    buffer, command as com, error, memory, pool, pso, query,
     backend::FastHashMap,
+    buffer, command as com, error,
     format::{Aspects, FormatDesc},
     image::{Extent, Filter, Layout, Level, SubresourceRange},
+    memory,
     pass::AttachmentLoadOp,
+    pool, pso, query,
     queue::{RawCommandQueue, Submission},
     range::RangeArg,
     DrawCount, IndexCount, IndexType, InstanceCount, SwapImageIndex, VertexCount, VertexOffset,
-    WorkGroupCount
+    WorkGroupCount,
 };
 
 use block::ConcreteBlock;
 use cocoa::foundation::{NSRange, NSUInteger};
 use copyless::VecHelper;
-use foreign_types::ForeignType;
-use metal::{
-    self,
-    MTLIndexType, MTLPrimitiveType, MTLScissorRect, MTLSize, MTLViewport,
-};
-use objc::rc::autoreleasepool;
-use parking_lot::Mutex;
 #[cfg(feature = "dispatch")]
 use dispatch;
+use foreign_types::ForeignType;
+use metal::{self, MTLIndexType, MTLPrimitiveType, MTLScissorRect, MTLSize, MTLViewport};
+use objc::rc::autoreleasepool;
+use parking_lot::Mutex;
 
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::ops::{Deref, Range};
 use std::sync::Arc;
 use std::{cmp, iter, mem, slice, time};
-
 
 const WORD_SIZE: usize = 4;
 const WORD_ALIGNMENT: u64 = WORD_SIZE as _;
@@ -786,10 +784,9 @@ impl Journal {
                     soft::Pass::Compute => self.compute_commands.len(),
                     soft::Pass::Blit => self.blit_commands.len(),
                 };
-                self.passes.alloc().init((
-                    pass.clone(),
-                    range.start + offset..range.end + offset,
-                ));
+                self.passes
+                    .alloc()
+                    .init((pass.clone(), range.start + offset..range.end + offset));
             }
         }
 
@@ -1008,7 +1005,7 @@ impl CommandSink {
                 *is_encoding = true;
                 journal.passes.alloc().init((
                     soft::Pass::Render(descriptor),
-                    journal.render_commands.len() .. 0,
+                    journal.render_commands.len()..0,
                 ));
                 PreRender::Deferred(&mut journal.resources, &mut journal.render_commands)
             }
@@ -1084,10 +1081,10 @@ impl CommandSink {
                 if let Some(&(soft::Pass::Blit, _)) = journal.passes.last() {
                 } else {
                     journal.stop();
-                    journal.passes.alloc().init((
-                        soft::Pass::Blit,
-                        journal.blit_commands.len() .. 0,
-                    ));
+                    journal
+                        .passes
+                        .alloc()
+                        .init((soft::Pass::Blit, journal.blit_commands.len()..0));
                 }
                 PreBlit::Deferred(&mut journal.blit_commands)
             }
@@ -1187,10 +1184,10 @@ impl CommandSink {
                     false
                 } else {
                     journal.stop();
-                    journal.passes.alloc().init((
-                        soft::Pass::Compute,
-                        journal.compute_commands.len() .. 0,
-                    ));
+                    journal
+                        .passes
+                        .alloc()
+                        .init((soft::Pass::Compute, journal.compute_commands.len()..0));
                     true
                 };
                 (
@@ -2040,11 +2037,15 @@ impl RawCommandQueue<Backend> for CommandQueue {
 
                 if let Some(fence) = fence {
                     debug!("\tmarking fence ptr {:?} as pending", fence.0.as_ptr());
-                    fence.0.replace(native::FenceInner::PendingSubmission(cmd_buffer.to_owned()));
+                    fence
+                        .0
+                        .replace(native::FenceInner::PendingSubmission(cmd_buffer.to_owned()));
                 }
             } else if let Some(cmd_buffer) = deferred_cmd_buffer {
                 cmd_buffer.commit();
             }
+            debug!("sending insertDebugCaptureBoundary");
+            msg_send![cmd_queue.raw, insertDebugCaptureBoundary];
         });
 
         debug!(
@@ -2298,10 +2299,17 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
             }
 
             match inner.sink {
-                Some(CommandSink::Deferred { ref mut is_encoding, ref mut journal, .. }) => {
+                Some(CommandSink::Deferred {
+                    ref mut is_encoding,
+                    ref mut journal,
+                    ..
+                }) => {
                     *is_encoding = true;
                     let pass_desc = metal::RenderPassDescriptor::new().to_owned();
-                    journal.passes.alloc().init((soft::Pass::Render(pass_desc), 0..0));
+                    journal
+                        .passes
+                        .alloc()
+                        .init((soft::Pass::Render(pass_desc), 0..0));
                 }
                 _ => unreachable!(),
             }
@@ -3044,7 +3052,8 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
             let (raw, range) = b.as_bound();
             let buffer_ptr = AsNative::from(raw);
             let index = first_binding as usize + i;
-            self.state.vertex_buffers
+            self.state
+                .vertex_buffers
                 .entry(index)
                 .set(Some((buffer_ptr, range.start + offset)));
         }
@@ -3413,9 +3422,9 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
                 if Some(pc) != self.state.resources_ps.push_constants
                     && pc.count as usize <= self.state.push_constants.len()
                 {
-                        pre.issue(self.state.push_ps_constants(pc));
-                    }
+                    pre.issue(self.state.push_ps_constants(pc));
                 }
+            }
         } else {
             debug_assert_eq!(self.state.rasterizer_state, pipeline.rasterizer_state);
             debug_assert_eq!(self.state.primitive_type, pipeline.primitive_type);
@@ -3603,9 +3612,9 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
             if Some(pc) != self.state.resources_cs.push_constants
                 && pc.count as usize <= self.state.push_constants.len()
             {
-                    pre.issue(self.state.push_cs_constants(pc));
-                }
+                pre.issue(self.state.push_cs_constants(pc));
             }
+        }
     }
 
     unsafe fn bind_compute_descriptor_sets<I, J>(
@@ -3791,23 +3800,31 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
                     depth: 1,
                 };
 
-                compute_commands.alloc().init(soft::ComputeCommand::BindBuffer {
-                    index: 0,
-                    buffer: AsNative::from(dst_raw),
-                    offset: dst_aligned + dst_range.start,
-                });
-                compute_commands.alloc().init(soft::ComputeCommand::BindBuffer {
-                    index: 1,
-                    buffer: AsNative::from(src_raw),
-                    offset: src_aligned + src_range.start,
-                });
-                compute_commands.alloc().init(soft::ComputeCommand::BindBufferData {
-                    index: 2,
-                    // Rust doesn't see that compute_datas will not lose this
-                    // item and the boxed contents can't be moved otherwise.
-                    words: mem::transmute(&compute_datas.last().unwrap()[..]),
-                });
-                compute_commands.alloc().init(soft::ComputeCommand::Dispatch { wg_size, wg_count });
+                compute_commands
+                    .alloc()
+                    .init(soft::ComputeCommand::BindBuffer {
+                        index: 0,
+                        buffer: AsNative::from(dst_raw),
+                        offset: dst_aligned + dst_range.start,
+                    });
+                compute_commands
+                    .alloc()
+                    .init(soft::ComputeCommand::BindBuffer {
+                        index: 1,
+                        buffer: AsNative::from(src_raw),
+                        offset: src_aligned + src_range.start,
+                    });
+                compute_commands
+                    .alloc()
+                    .init(soft::ComputeCommand::BindBufferData {
+                        index: 2,
+                        // Rust doesn't see that compute_datas will not lose this
+                        // item and the boxed contents can't be moved otherwise.
+                        words: mem::transmute(&compute_datas.last().unwrap()[..]),
+                    });
+                compute_commands
+                    .alloc()
+                    .init(soft::ComputeCommand::Dispatch { wg_size, wg_count });
             }
         }
 
@@ -4349,11 +4366,13 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
                 _ => panic!("Unexpected secondary sink!"),
             };
 
-            match *self.inner
-                .borrow_mut()
-                .sink()
-            {
-                CommandSink::Immediate { ref mut cmd_buffer, ref mut encoder_state, ref mut num_passes, .. } => {
+            match *self.inner.borrow_mut().sink() {
+                CommandSink::Immediate {
+                    ref mut cmd_buffer,
+                    ref mut encoder_state,
+                    ref mut num_passes,
+                    ..
+                } => {
                     if is_inheriting {
                         let encoder = match encoder_state {
                             EncoderState::Render(ref encoder) => encoder,
@@ -4368,11 +4387,13 @@ impl com::RawCommandBuffer<Backend> for CommandBuffer {
                         exec_journal.record(cmd_buffer);
                     }
                 }
-                CommandSink::Deferred { ref mut journal, .. } => {
+                CommandSink::Deferred {
+                    ref mut journal, ..
+                } => {
                     journal.extend(exec_journal, is_inheriting);
                 }
                 #[cfg(feature = "dispatch")]
-                CommandSink::Remote {..} => unimplemented!(),
+                CommandSink::Remote { .. } => unimplemented!(),
             }
         }
     }
