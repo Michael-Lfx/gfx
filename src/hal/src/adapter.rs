@@ -204,4 +204,35 @@ impl<B: Backend> Adapter<B> {
             unsafe { self.physical_device.open(&families, Features::empty()) }?;
         Ok((device, queues.take(id).unwrap()))
     }
+    
+    pub fn open_raw_with<F, C>(
+        &self,
+        count: usize,
+        selector: F,
+    ) -> Result<(B::Device, Option<Vec<B::CommandQueue>>), DeviceCreationError>
+    where
+        F: Fn(&B::QueueFamily) -> bool,
+        C: Capability,
+    {
+        use crate::queue::QueueFamily;
+
+        let requested_family = self
+            .queue_families
+            .iter()
+            .find(|family| {
+                C::supported_by(family.queue_type())
+                    && selector(family)
+                    && count <= family.max_queues()
+            });
+
+        let priorities = vec![1.0; count];
+        let (id, families) = match requested_family {
+            Some(family) => (family.id(), [(family, priorities.as_slice())]),
+            _ => return Err(DeviceCreationError::InitializationFailed),
+        };
+
+        let Gpu { device, mut queues } =
+            unsafe { self.physical_device.open(&families, Features::empty()) }?;
+        Ok((device, queues.take_raw(id).unwrap()))
+    }
 }
