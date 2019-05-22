@@ -209,7 +209,7 @@ impl<B: Backend> Adapter<B> {
         &self,
         count: usize,
         selector: F,
-    ) -> Result<(B::Device, Option<Vec<B::CommandQueue>>), DeviceCreationError>
+    ) -> Result<(B::Device, Vec<B::CommandQueue>), DeviceCreationError>
     where
         F: Fn(&B::QueueFamily) -> bool,
         C: Capability,
