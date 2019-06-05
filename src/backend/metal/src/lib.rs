@@ -280,18 +280,18 @@ impl Instance {
             new_layer
         };
 
-        let window: cocoa::base::id = msg_send![view, window];
-        if window.is_null() {
-            panic!("surface is not attached to a window");
-        }
+        // let window: cocoa::base::id = msg_send![view, window];
+        // if window.is_null() {
+        //     panic!("surface is not attached to a window");
+        // }
 
-        let screen: cocoa::base::id = msg_send![window, screen];
-        if screen.is_null() {
-            panic!("window is not attached to a screen");
-        }
+        // let screen: cocoa::base::id = msg_send![window, screen];
+        // if screen.is_null() {
+        //     panic!("window is not attached to a screen");
+        // }
 
-        let scale_factor: CGFloat = msg_send![screen, nativeScale];
-        msg_send![view, setContentScaleFactor: scale_factor];
+        // let scale_factor: CGFloat = msg_send![screen, nativeScale];
+        // msg_send![view, setContentScaleFactor: scale_factor];
 
         msg_send![view, retain];
         window::SurfaceInner::new(NonNull::new(view), render_layer)
