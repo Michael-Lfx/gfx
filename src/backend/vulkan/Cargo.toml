@@ -33,5 +33,5 @@ winit = { version = "0.19", optional = true }
 winapi = { version = "0.3", features = ["libloaderapi", "windef", "winuser"] }
 
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
-x11 = { version = "2.15", features = ["xlib"]}
+x11 = { version = "2.18.1", features = ["xlib"]}
 xcb = { version = "0.8" }
