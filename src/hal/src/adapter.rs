@@ -202,7 +202,7 @@ impl<B: Backend> Adapter<B> {
             unsafe { self.physical_device.open(&families, Features::empty()) }?;
         Ok((device, queues.take(id).unwrap()))
     }
-
+    
     /// temp
     pub fn open_raw_with<F, C>(
         &self,
