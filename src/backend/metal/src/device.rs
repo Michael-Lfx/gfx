@@ -824,7 +824,7 @@ impl Device {
 
     pub unsafe fn create_image_view_with_metal_texture(
         &self,
-        texture: metal::Texture,
+        texture: *mut Object,
         kind: image::ViewKind,
         format: format::Format,
         swizzle: format::Swizzle,
@@ -841,22 +841,22 @@ impl Device {
                     return Err(image::ViewError::BadFormat(format));
                 }
             };
-        let like = n::ImageLike::Texture(texture);
-        let raw = like.as_texture();
         let mtl_type = conv::map_texture_type(kind);
-        
-        let view = raw.new_texture_view_from_slice(
-           mtl_format,
-           mtl_type,
-           NSRange {
+
+        let view =  unsafe {
+            msg_send![texture, newTextureViewWithPixelFormat:mtl_format
+                                                textureType:mtl_type
+                                                     levels:NSRange {
                location: range.levels.start as _,
                length: (range.levels.end - range.levels.start) as _,
-           },
-           NSRange {
+           }
+                                                     slices:NSRange {
                location: range.layers.start as _,
                length: (range.layers.end - range.layers.start) as _,
-           },
-        );
+           }]
+        };
+        
+
 
         Ok(n::ImageView {
             raw: view,
