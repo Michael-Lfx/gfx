@@ -824,6 +824,18 @@ impl Device {
 
     pub unsafe fn create_image_view_with_metal_texture(
         &self,
+        raw: metal::Texture,
+        mtl_format: metal::MTLPixelFormat,
+    ) -> Result<n::ImageView, image::ViewError> {
+        msg_send![raw, retain];
+        Ok(n::ImageView {
+            raw,
+            mtl_format,
+        })
+    }
+
+    pub unsafe fn create_image_view_with_metal_texture0(
+        &self,
         texture: metal::Texture,
         kind: image::ViewKind,
         format: format::Format,
